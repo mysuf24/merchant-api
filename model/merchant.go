@@ -3,7 +3,7 @@ package model
 import "time"
 
 type Merchant struct {
-	ID           string    `gorm:"primaryKey" json:"id"`
+	ID           string    `gorm:"type:uuid;default:gen_random_uuid();"primaryKey" json:"id"`
 	Name         string    `json:"name"`
 	LegalName    string    `json:"legal_name"`
 	MerchantType string    `json:"merchant_type"`
@@ -22,9 +22,8 @@ type Merchant struct {
 }
 
 type MerchantBalance struct {
-	ID               string    `gorm:"primaryKey" json:"id"`
-	MerchantID       string    `gorm:"index" json:"merchant_id"`
-	Merchant         Merchant  `gorm:"foreignKey:MerchantID;references:ID"`
+	ID               string    `gorm:"type:uuid;default:gen_random_uuid();"primaryKey" json:"id"`
+	MerchantID       string    `gorm:"type:uuid" json:"merchant_id"`
 	AvailableBalance int64     `json:"available_balance"`
 	HoldBalance      int64     `json:"hold_balance"`
 	UpdatedAt        time.Time `json:"updated_at"`
