@@ -1,6 +1,7 @@
 package main
 
-func main() {
-	
-}
+import "merchant-api/config"
 
+func main() {
+	config.ConnectDB()
+}
