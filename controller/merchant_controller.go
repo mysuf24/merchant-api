@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 func CreateMerchant(ctx *gin.Context) {
@@ -22,12 +23,12 @@ func CreateMerchant(ctx *gin.Context) {
 	input.UpdatedAt = time.Now()
 
 	//save merchant
-	if err := config.DB.Create(&input).Error; err != nil {
+	if err := config.DB.Clauses(clause.Returning{}).Create(&input).Error; err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Gagal membuat merchant"})
 		return
 	}
 
-	log.Printf("Merchant berhasil dibuat: %+v\n", input)
+	log.Printf("Merchant berhasil dibuat: %+v\n", input.ID)
 
 	//setelah berhasil, buat saldo awal
 	balance := model.MerchantBalance{
@@ -55,28 +56,49 @@ func CreateMerchant(ctx *gin.Context) {
 // get merchant
 func GetMerchants(ctx *gin.Context) {
 	var merchants []model.Merchant
-	config.DB.Find(&merchants)
 
-	ctx.JSON(http.StatusOK, gin.H{
+	if err := config.DB.Preload("Balances").Find(&merchants).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data merchant"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{
 		"success": true,
 		"message": "List Data merch",
 		"data":    merchants,
 	})
 }
 
+
 // get merchant by id
 func GetMerchantByID(ctx *gin.Context) {
-	var merchants model.Merchant
-	if err := config.DB.Where("id = ?", ctx.Param("id")).First(&merchants).Error; err != nil {
+	var output model.Merchant
+
+	if err := config.DB.Preload("Balances").Where("id = ?", ctx.Param("id")).First(&output).Error; err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Record not Found!"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{
+		"success": true,
+		"message": "Detail Data By Id :" + ctx.Param("id"),
+		"data":    output,
+	})
+}
+
+
+func GetBalanceByMerchantID(ctx *gin.Context) {
+	merchantID := ctx.Param("merchant_id")
+
+	var balance model.MerchantBalance
+	if err := config.DB.Where("merchant_id = ?", merchantID).First(&balance).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Balance kosong pada merchant ini"})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "Detail Data By Id :" + ctx.Param("id"),
-		"data":    merchants,
+		"message": "saldo merchant di temukan",
+		"data":    balance,
 	})
 }
-
-
