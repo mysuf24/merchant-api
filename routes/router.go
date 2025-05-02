@@ -10,6 +10,7 @@ func SetupRoutes(router *gin.Engine) {
 
 	router.POST("/merchant", controller.CreateMerchant)
 	router.POST("/merchants/:id/topup", controller.TopUpBalance)
+	router.POST("merchants/:id/withdraw", controller.WithdrawBalance)
 
 	router.GET("/merchants", controller.GetMerchants)
 	router.GET("/merchants/:id", controller.GetMerchantByID)

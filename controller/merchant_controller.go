@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+//put merchant
 func CreateMerchant(ctx *gin.Context) {
 	var input model.Merchant
 
@@ -105,6 +106,7 @@ func GetBalanceByMerchantID(ctx *gin.Context) {
 	})
 }
 
+//put balance
 func TopUpBalance(ctx *gin.Context) {
 	merchantID := ctx.Param("id")
 	var req struct {
@@ -140,3 +142,52 @@ func TopUpBalance(ctx *gin.Context) {
 		"data":    balance,
 	})
 }
+
+
+// put
+func WithdrawBalance(ctx *gin.Context) {
+	merchantID := ctx.Param("id")
+	log.Printf("Permintaan withdraw untuk merchant ID: %s", merchantID)
+
+	var req struct {
+		Amount int64 `json:"amount"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil || req.Amount <= 0 {
+		log.Printf("Request tidak valid: %+v, error: %v", req, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah withdraw harus valid dan lebih dari 0"})
+		return
+	}
+
+	var balance model.MerchantBalance
+	if err := config.DB.Where("merchant_id = ?", merchantID).First(&balance).Error; err != nil {
+		log.Printf("Saldo untuk merchant %s tidak ditemukan", merchantID)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Merchant tidak ditemukan atau belum punya saldo"})
+		return
+	}
+
+	if balance.AvailableBalance < req.Amount {
+		log.Printf("Saldo tidak mencukupi untuk merchant %s. Saldo: %d, Diminta: %d", merchantID, balance.AvailableBalance, req.Amount)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Saldo tidak mencukupi"})
+		return
+	}
+
+	oldBalance := balance.AvailableBalance
+	balance.AvailableBalance -= req.Amount
+	balance.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&balance).Error; err != nil {
+		log.Printf("Gagal update saldo untuk merchant %s: %v", merchantID, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui saldo"})
+		return
+	}
+
+	log.Printf("Withdraw berhasil untuk merchant %s, dari %d menjadi %d", merchantID, oldBalance, balance.AvailableBalance)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Withdraw berhasil",
+		"data":    balance,
+	})
+}
+
