@@ -51,3 +51,30 @@ func CreateMerchant(ctx *gin.Context) {
 	})
 
 }
+
+// get merchant
+func GetMerchants(ctx *gin.Context) {
+	var output []model.Merchant
+	config.DB.Find(&output)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "List Data merch",
+		"data":    output,
+	})
+}
+
+// get merchant by id
+func GetMerchantByID(ctx *gin.Context) {
+	var output model.Merchant
+	if err := config.DB.Where("id = ?", ctx.Param("id")).First(&output).Error; err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Record not Found!"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Detail Data By Id :" + ctx.Param("id"),
+		"data":    output,
+	})
+}
