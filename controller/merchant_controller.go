@@ -62,13 +62,13 @@ func GetMerchants(ctx *gin.Context) {
 		return
 	}
 
+	log.Printf("Berhasil ambil %d merchant\n", len(merchants))
 	ctx.JSON(200, gin.H{
 		"success": true,
 		"message": "List Data merch",
 		"data":    merchants,
 	})
 }
-
 
 // get merchant by id
 func GetMerchantByID(ctx *gin.Context) {
@@ -79,6 +79,7 @@ func GetMerchantByID(ctx *gin.Context) {
 		return
 	}
 
+	log.Printf("Merchant ID %s ditemukan\n", ctx.Param("id"))
 	ctx.JSON(200, gin.H{
 		"success": true,
 		"message": "Detail Data By Id :" + ctx.Param("id"),
@@ -86,9 +87,8 @@ func GetMerchantByID(ctx *gin.Context) {
 	})
 }
 
-
 func GetBalanceByMerchantID(ctx *gin.Context) {
-	merchantID := ctx.Param("merchant_id")
+	merchantID := ctx.Param("id")
 
 	var balance model.MerchantBalance
 	if err := config.DB.Where("merchant_id = ?", merchantID).First(&balance).Error; err != nil {
@@ -96,6 +96,7 @@ func GetBalanceByMerchantID(ctx *gin.Context) {
 		return
 	}
 
+	log.Printf("Saldo ditemukan untuk merchant_id %s\n", merchantID)
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "saldo merchant di temukan",
