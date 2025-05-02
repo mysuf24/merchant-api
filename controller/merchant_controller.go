@@ -87,6 +87,7 @@ func GetMerchantByID(ctx *gin.Context) {
 	})
 }
 
+// get balance merchant by id
 func GetBalanceByMerchantID(ctx *gin.Context) {
 	merchantID := ctx.Param("id")
 
@@ -100,6 +101,42 @@ func GetBalanceByMerchantID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "saldo merchant di temukan",
+		"data":    balance,
+	})
+}
+
+func TopUpBalance(ctx *gin.Context) {
+	merchantID := ctx.Param("id")
+	var req struct {
+		Amount int64 `json:"amount"`
+	}
+
+	if err := ctx.ShouldBind(&req); err != nil || req.Amount <= 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah top-up harus lebih dari 0"})
+		return
+	}
+
+	var balance model.MerchantBalance
+	if err := config.DB.Where("merchant_id = ?", merchantID).First(&balance).Error; err != nil {
+		log.Printf("Saldo untuk merchant %s tidak ditemukan", merchantID)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Merchant tidak ditemukan atau belum punya saldo"})
+		return
+	}
+
+	oldBalance := balance.AvailableBalance
+	balance.AvailableBalance += req.Amount
+	balance.UpdatedAt = time.Now()
+
+	if err := config.DB.Save(&balance).Error; err != nil {
+		log.Printf("Gagal update saldo untuk merchant  %s: %v", merchantID, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui saldo"})
+		return
+	}
+
+	log.Printf("Top-up berhasil untuk merchant %s, dari %d menjadi %d", merchantID, oldBalance, balance.AvailableBalance)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Top up berhasil",
 		"data":    balance,
 	})
 }
